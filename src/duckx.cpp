@@ -70,6 +70,7 @@ void duckx::TableCell::set_parent(pugi::xml_node node) {
     this->current = this->parent.child("w:tc");
 
     this->paragraph.set_parent(this->current);
+    this->tag.set_parent(this->current);
 }
 
 void duckx::TableCell::set_current(pugi::xml_node node) {
@@ -81,6 +82,11 @@ bool duckx::TableCell::has_next() const { return this->current != 0; }
 duckx::TableCell &duckx::TableCell::next() {
     this->current = this->current.next_sibling();
     return *this;
+}
+
+duckx::Tag &duckx::TableCell::tags() {
+    this->tag.set_parent(this->current);
+    return this->tag;
 }
 
 duckx::Paragraph &duckx::TableCell::paragraphs() {
@@ -159,6 +165,7 @@ void duckx::Paragraph::set_parent(pugi::xml_node node) {
     this->current = this->parent.child("w:p");
 
     this->run.set_parent(this->current);
+    this->tag.set_parent(this->current);
 }
 
 void duckx::Paragraph::set_current(pugi::xml_node node) {
@@ -168,10 +175,16 @@ void duckx::Paragraph::set_current(pugi::xml_node node) {
 duckx::Paragraph &duckx::Paragraph::next() {
     this->current = this->current.next_sibling();
     this->run.set_parent(this->current);
+    this->tag.set_parent(this->current);
     return *this;
 }
 
 bool duckx::Paragraph::has_next() const { return this->current != 0; }
+
+duckx::Tag &duckx::Paragraph::tags() {
+    this->tag.set_parent(this->current);
+    return this->tag;
+}
 
 duckx::Run &duckx::Paragraph::runs() {
     this->run.set_parent(this->current);
@@ -244,6 +257,73 @@ duckx::Paragraph::insert_paragraph_after(const std::string &text,
     p->add_run(text, f);
 
     return *p;
+}
+
+duckx::Tag::Tag() {}
+
+duckx::Tag::Tag(pugi::xml_node parent, pugi::xml_node current) {
+    this->set_parent(parent);
+    this->set_current(current);
+}
+
+void duckx::Tag::updateRun() {
+    this->run.set_parent(current.child("w:sdtContent"));
+}
+
+void duckx::Tag::set_parent(pugi::xml_node node){
+    this->parent = node;
+    this->current = this->parent.child("w:sdt");
+
+    this->updateRun();
+}
+
+void duckx::Tag::set_current(pugi::xml_node node){
+    this->current = node;
+}
+
+duckx::Tag& duckx::Tag::next(){
+    this->current = this->current.next_sibling();
+    this->updateRun();
+
+    return *this;
+}
+
+bool duckx::Tag::has_next() const{ return this->current != 0; }
+
+std::string duckx::Tag::get_tag() const{
+    pugi::xml_node props = this->current.child("w:sdtPr");
+    if(props == 0){
+        return std::string();
+    }
+
+    pugi::xml_node tag = props.child("w:tag");
+    if(tag == 0){
+        return std::string();
+    }
+
+    pugi::xml_attribute tagAtt = tag.attribute("w:val");
+    return tagAtt.value();
+}
+
+std::string duckx::Tag::get_alias() const{
+    pugi::xml_node props = this->current.child("w:sdtPr");
+    if(props == 0){
+        return std::string();
+    }
+
+    pugi::xml_node tag = props.child("w:alias");
+    if(tag == 0){
+        return std::string();
+    }
+
+    pugi::xml_attribute tagAtt = tag.attribute("w:val");
+    return tagAtt.value();
+
+}
+
+duckx::Run &duckx::Tag::runs() {
+    this->updateRun();
+    return this->run;
 }
 
 duckx::Document::Document() {

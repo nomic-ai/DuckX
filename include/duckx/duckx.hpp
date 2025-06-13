@@ -45,6 +45,33 @@ class Run {
     bool has_next() const;
 };
 
+
+// Tag consists properties and content
+class Tag {
+  private:
+    friend class IteratorHelper;
+    pugi::xml_node parent;
+    pugi::xml_node current;
+
+    Run run;
+
+    void updateRun();
+
+  public:
+    Tag();
+    Tag(pugi::xml_node, pugi::xml_node);
+    void set_parent(pugi::xml_node);
+    void set_current(pugi::xml_node);
+
+    Tag &next();
+    bool has_next() const;
+
+    std::string get_tag() const;
+    std::string get_alias() const;
+
+    Run &runs();
+};
+
 // Paragraph contains a paragraph
 // and stores runs
 class Paragraph {
@@ -56,6 +83,7 @@ class Paragraph {
     pugi::xml_node current;
     // A paragraph consists of runs
     Run run;
+    Tag tag;
 
   public:
     Paragraph();
@@ -65,6 +93,8 @@ class Paragraph {
 
     Paragraph &next();
     bool has_next() const;
+
+    Tag & tags();
 
     Run &runs();
     Run &add_run(const std::string &, duckx::formatting_flag = duckx::none);
@@ -81,6 +111,7 @@ class TableCell {
     pugi::xml_node current;
 
     Paragraph paragraph;
+    Tag tag;
 
   public:
     TableCell();
@@ -89,6 +120,7 @@ class TableCell {
     void set_parent(pugi::xml_node);
     void set_current(pugi::xml_node);
 
+    Tag &tags();
     Paragraph &paragraphs();
 
     TableCell &next();
@@ -136,6 +168,7 @@ class Table {
     TableRow &rows();
 };
 
+
 // Document contains whole the docx file
 // and stores paragraphs
 class Document {
@@ -144,6 +177,7 @@ class Document {
     std::string directory;
     Paragraph paragraph;
     Table table;
+    Tag tag;
     pugi::xml_document document;
     bool flag_is_open;
 
